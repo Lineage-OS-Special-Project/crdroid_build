@@ -1,0 +1,38 @@
+From 0df16c64f51753f6cdcbc6934537298e785d7c7f Mon Sep 17 00:00:00 2001
+From: yehonatan5785 <yehonatan@mail.ru>
+Date: Thu, 26 Jun 2025 14:41:01 +0100
+Subject: [PATCH] Increase default JVM heap size in releasetools to 6144M
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Align the default JVM heap size in build/make/tools/releasetools/common.py
+with previous Soong configuration changes by increasing from 4096m to 6144m.
+
+This matches the heap size adjustments made in build/soong for:
+- JavacHeapSize (4096M → 6144M)
+- D8Flags (-JXmx4096M → -JXmx6144M)
+- R8Flags (-JXmx4096M → -JXmx6144M)
+
+The change maintains consistency across the build system and better
+supports high-memory (32GB+) build environments.
+---
+ tools/releasetools/common.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/releasetools/common.py b/tools/releasetools/common.py
+index d95e25f8fa..96ceae1fc3 100644
+--- a/tools/releasetools/common.py
++++ b/tools/releasetools/common.py
+@@ -83,7 +83,7 @@ class Options(object):
+     self.extra_signapk_args = []
+     self.aapt2_path = "aapt2"
+     self.java_path = "java"  # Use the one on the path by default.
+-    self.java_args = ["-Xmx4096m"]  # The default JVM args.
++    self.java_args = ["-Xmx6144m"]  # The default JVM args.
+     self.android_jar_path = None
+     self.public_key_suffix = ".x509.pem"
+     self.private_key_suffix = ".pk8"
+-- 
+2.56.0
+

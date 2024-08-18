@@ -1,0 +1,70 @@
+From 3c97dc898e3c4b87bdacc827134a18eb4974dfad Mon Sep 17 00:00:00 2001
+From: yehonatan2020 <yehonatan@yandex.ru>
+Date: Sun, 18 Aug 2024 22:19:31 +0100
+Subject: [PATCH] product: Remove redundant and unused applications
+
+This change cleans up the default application suite by removing
+packages that are either redundant, unused, or better provided
+by third-party alternatives.
+
+Removed from handheld_product.mk:
+    Browser2
+    Calendar
+    Contacts
+    DeskClock
+    Gallery2
+    Music
+    Camera2
+
+Removed from handheld_system.mk:
+    EasterEgg
+    Traceur
+
+This streamlining results in a leaner base system and reduces
+maintenance overhead for applications that are not core to the
+LOSP user experience.
+
+Signed-off-by: Yehonatan5785 <yehonatan@mail.ru>
+---
+ target/product/handheld_product.mk | 7 -------
+ target/product/handheld_system.mk  | 2 --
+ 2 files changed, 9 deletions(-)
+
+diff --git a/target/product/handheld_product.mk b/target/product/handheld_product.mk
+index ae7cbe0a16..7c836c8f21 100644
+--- a/target/product/handheld_product.mk
++++ b/target/product/handheld_product.mk
+@@ -22,13 +22,6 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/media_product.mk)
+ 
+ # /product packages
+ PRODUCT_PACKAGES += \
+-    Browser2 \
+-    Calendar \
+-    Camera2 \
+-    Contacts \
+-    DeskClock \
+-    Gallery2 \
+-    Music \
+     preinstalled-packages-platform-handheld-product.xml \
+     QuickSearchBox \
+     SettingsIntelligence \
+diff --git a/target/product/handheld_system.mk b/target/product/handheld_system.mk
+index 0c2f641942..325e610355 100644
+--- a/target/product/handheld_system.mk
++++ b/target/product/handheld_system.mk
+@@ -49,7 +49,6 @@ PRODUCT_PACKAGES += \
+     DeviceDiagnostics \
+     DocumentsUI \
+     DownloadProviderUi \
+-    EasterEgg \
+     ExternalStorageProvider \
+     FusedLocation \
+     InputDevices \
+@@ -118,4 +117,3 @@ PRODUCT_VENDOR_PROPERTIES += \
+ 
+ # Traceur for debug only
+ PRODUCT_PACKAGES_ENG += \
+-    Traceur
+-- 
+2.56.0
+
