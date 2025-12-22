@@ -207,6 +207,7 @@ function _wrap_build()
     else
         color_failed=""
         color_success=""
+        color_warning=""
         color_reset=""
     fi
 
@@ -225,9 +226,63 @@ function _wrap_build()
     fi
     echo " ####${color_reset}"
     echo
+    
+    # LIST ZIP FILES AFTER BUILD - YELLOW LINE, ZIP NAME IN RED (+ blank line after)
+if [ $ret -eq 0 ] ; then
+    local out_dir
+    out_dir=$(getoutdir)
+
+    if [ -n "$OUT" ] && [ -d "$OUT" ]; then
+        echo "${color_warning}=== Built files in \$OUT ($OUT) ===${color_reset}"
+
+        (cd "$OUT" && ls -lh *.zip 2>/dev/null | awk \
+            -v yellow="$color_warning" \
+            -v red="$color_failed" \
+            -v reset="$color_reset" '
+{
+    # Print entire line in yellow, but filename in red.
+    printf "%s", yellow
+    for (i = 1; i < NF; i++) printf "%s ", $i
+    printf "%s%s%s%s\n\n", red, $NF, yellow, reset
+}') || echo "${color_warning}No zip files found${color_reset}"
+
+    elif [ -d "$out_dir" ]; then
+        echo ""
+        echo "${color_warning}=== Built files in out directory ($out_dir) ===${color_reset}"
+
+        # Try to find the product-specific OUT directory
+        if [ -n "$TARGET_PRODUCT" ] && [ -d "$out_dir/target/product/$TARGET_PRODUCT" ]; then
+            local product_out="$out_dir/target/product/$TARGET_PRODUCT"
+
+            (cd "$product_out" && ls -lh *.zip 2>/dev/null | awk \
+                -v yellow="$color_warning" \
+                -v red="$color_failed" \
+                -v reset="$color_reset" '
+{
+    printf "%s", yellow
+    for (i = 1; i < NF; i++) printf "%s ", $i
+    printf "%s%s%s%s\n\n", red, $NF, yellow, reset
+}') || echo "${color_warning}No zip files found in $product_out${color_reset}"
+
+        else
+            # Search recursively for zip files
+            find "$out_dir" -name "*.zip" -type f | head -20 | while read -r file; do
+                ls -lh "$file" | awk \
+                    -v yellow="$color_warning" \
+                    -v red="$color_failed" \
+                    -v reset="$color_reset" '
+{
+    printf "%s", yellow
+    for (i = 1; i < NF; i++) printf "%s ", $i
+    printf "%s%s%s%s\n\n", red, $NF, yellow, reset
+}'
+            done
+        fi
+    fi
+fi
+    
     return $ret
 }
-
 
 function log_tool_invocation()
 {
