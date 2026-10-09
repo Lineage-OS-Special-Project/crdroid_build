@@ -24,6 +24,7 @@ import zipfile
 import common
 import test_utils
 from rangelib import RangeSet
+import validate_target_files
 from validate_target_files import (ValidateVerifiedBootImages,
                                    ValidateFileConsistency, CheckBuildPropDuplicity)
 from verity_utils import CreateVerityImageBuilder
@@ -32,6 +33,37 @@ class ValidateTargetFilesTest(test_utils.ReleaseToolsTestCase):
 
   def setUp(self):
     self.testdata_dir = test_utils.get_testdata_dir()
+
+  def test_ReadFile_streamingSha1(self):
+    test_cases = [
+        ('empty', b''),
+        ('short', b'short file'),
+        ('exactly 4K', b'a' * 4096),
+        ('non-aligned over 4K', b'b' * 5003),
+        ('multiple chunks', b'c' * (2 * validate_target_files._HASH_CHUNK_SIZE + 37)),
+    ]
+    test_file = os.path.join(self._tempdir, 'streaming-hash-test')
+
+    for name, data in test_cases:
+      with self.subTest(name=name):
+        with open(test_file, 'wb') as f:
+          f.write(data)
+
+        for round_up in (False, True):
+          expected_data = data
+          if round_up:
+            expected_data += b'\0' * (common.RoundUpTo4K(len(data)) - len(data))
+          expected_sha1 = common.File(name, expected_data).sha1
+          actual_sha1 = validate_target_files._ReadFile(
+              test_file, round_up)
+          self.assertEqual(expected_sha1, actual_sha1)
+
+        unpadded_sha1 = validate_target_files._ReadFile(test_file, False)
+        padded_sha1 = validate_target_files._ReadFile(test_file, True)
+        if len(data) == common.RoundUpTo4K(len(data)):
+          self.assertEqual(unpadded_sha1, padded_sha1)
+        else:
+          self.assertNotEqual(unpadded_sha1, padded_sha1)
 
   def _generate_boot_image(self, output_file):
     kernel = common.MakeTempFile(prefix='kernel-')
