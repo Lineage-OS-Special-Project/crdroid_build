@@ -44,16 +44,31 @@ import common
 import rangelib
 
 
-def _ReadFile(file_name, unpacked_name, round_up=False):
-  """Constructs and returns a File object. Rounds up its size if needed."""
+# Bound memory usage while hashing unpacked target-files entries.
+_HASH_CHUNK_SIZE = 1024 * 1024
+
+
+def _ReadFile(unpacked_name, round_up=False):
+  """Returns the SHA-1 of an unpacked file, optionally padded to 4K."""
   assert os.path.exists(unpacked_name)
+  file_sha1 = sha1()
+  file_size = 0
   with open(unpacked_name, 'rb') as f:
-    file_data = f.read()
-  file_size = len(file_data)
+    while True:
+      data = f.read(_HASH_CHUNK_SIZE)
+      if not data:
+        break
+      file_sha1.update(data)
+      file_size += len(data)
+
   if round_up:
-    file_size_rounded_up = common.RoundUpTo4K(file_size)
-    file_data += b'\0' * (file_size_rounded_up - file_size)
-  return common.File(file_name, file_data)
+    padding_size = common.RoundUpTo4K(file_size) - file_size
+    zero_chunk = b'\0' * min(_HASH_CHUNK_SIZE, padding_size)
+    while padding_size:
+      chunk_size = min(_HASH_CHUNK_SIZE, padding_size)
+      file_sha1.update(zero_chunk[:chunk_size])
+      padding_size -= chunk_size
+  return file_sha1.hexdigest()
 
 
 def ValidateFileAgainstSha1(input_tmp, file_name, file_path, expected_sha1):
@@ -62,7 +77,7 @@ def ValidateFileAgainstSha1(input_tmp, file_name, file_path, expected_sha1):
   logging.info('Validating the SHA-1 of %s', file_name)
   unpacked_name = os.path.join(input_tmp, file_path)
   assert os.path.exists(unpacked_name)
-  actual_sha1 = _ReadFile(file_name, unpacked_name, False).sha1
+  actual_sha1 = _ReadFile(unpacked_name, False)
   assert actual_sha1 == expected_sha1, \
       'SHA-1 mismatches for {}. actual {}, expected {}'.format(
           file_name, actual_sha1, expected_sha1)
@@ -118,8 +133,7 @@ def ValidateFileConsistency(input_zip, input_tmp, info_dict):
       # The filename under unpacked directory, such as SYSTEM/bin/sh.
       unpacked_name = os.path.join(
           input_tmp, which.upper(), entry[(len(prefix) + 1):])
-      unpacked_file = _ReadFile(entry, unpacked_name, True)
-      file_sha1 = unpacked_file.sha1
+      file_sha1 = _ReadFile(unpacked_name, True)
       assert blocks_sha1 == file_sha1, \
           'file: %s, range: %s, blocks_sha1: %s, file_sha1: %s' % (
               entry, file_ranges, blocks_sha1, file_sha1)
