@@ -3142,12 +3142,20 @@ def ZipExclude(input_zip, output_zip, entries, force=False):
 
     fd, new_zipfile = tempfile.mkstemp(dir=os.path.dirname(input_zip))
     os.close(fd)
-    cmd = ["zip2zip", "-i", input_zip, "-o", new_zipfile]
-    for entry in entries:
-      cmd.append("-x")
-      cmd.append(entry)
-    RunAndCheckOutput(cmd)
-  os.replace(new_zipfile, output_zip)
+    try:
+      cmd = ["zip2zip", "-i", input_zip, "-o", new_zipfile]
+      for entry in entries:
+        cmd.append("-x")
+        cmd.append(entry)
+      RunAndCheckOutput(cmd)
+      os.replace(new_zipfile, output_zip)
+    finally:
+      # os.replace() consumes the temporary path on success. On failure,
+      # remove it unless it aliases the caller's input/output archive.
+      if (os.path.lexists(new_zipfile) and
+          not os.path.samefile(new_zipfile, input_zip) and
+          not os.path.samefile(new_zipfile, output_zip)):
+        os.unlink(new_zipfile)
 
 
 def ZipDelete(zip_filename, entries, force=False):
