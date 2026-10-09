@@ -3085,40 +3085,41 @@ def ZipWriteStr(zip_file: zipfile.ZipFile, zinfo_or_arcname, data, perms=None,
 
   saved_zip64_limit = zipfile.ZIP64_LIMIT
   zipfile.ZIP64_LIMIT = (1 << 32) - 1
+  try:
+    if not isinstance(zinfo_or_arcname, zipfile.ZipInfo):
+      zinfo = zipfile.ZipInfo(filename=zinfo_or_arcname)
+      zinfo.compress_type = zip_file.compression
+      if perms is None:
+        perms = 0o100644
+    else:
+      zinfo = zinfo_or_arcname
+      # Python 2 and 3 behave differently when calling ZipFile.writestr() with
+      # zinfo.external_attr being 0. Python 3 uses `0o600 << 16` as the value for
+      # such a case (since
+      # https://github.com/python/cpython/commit/18ee29d0b870caddc0806916ca2c823254f1a1f9),
+      # which seems to make more sense. Otherwise the entry will have 0o000 as the
+      # permission bits. We follow the logic in Python 3 to get consistent
+      # behavior between using the two versions.
+      if not zinfo.external_attr:
+        zinfo.external_attr = 0o600 << 16
 
-  if not isinstance(zinfo_or_arcname, zipfile.ZipInfo):
-    zinfo = zipfile.ZipInfo(filename=zinfo_or_arcname)
-    zinfo.compress_type = zip_file.compression
-    if perms is None:
-      perms = 0o100644
-  else:
-    zinfo = zinfo_or_arcname
-    # Python 2 and 3 behave differently when calling ZipFile.writestr() with
-    # zinfo.external_attr being 0. Python 3 uses `0o600 << 16` as the value for
-    # such a case (since
-    # https://github.com/python/cpython/commit/18ee29d0b870caddc0806916ca2c823254f1a1f9),
-    # which seems to make more sense. Otherwise the entry will have 0o000 as the
-    # permission bits. We follow the logic in Python 3 to get consistent
-    # behavior between using the two versions.
-    if not zinfo.external_attr:
-      zinfo.external_attr = 0o600 << 16
+    # If compress_type is given, it overrides the value in zinfo.
+    if compress_type is not None:
+      zinfo.compress_type = compress_type
 
-  # If compress_type is given, it overrides the value in zinfo.
-  if compress_type is not None:
-    zinfo.compress_type = compress_type
+    # If perms is given, it has a priority.
+    if perms is not None:
+      # If perms doesn't set the file type, mark it as a regular file.
+      if perms & 0o770000 == 0:
+        perms |= 0o100000
+      zinfo.external_attr = perms << 16
 
-  # If perms is given, it has a priority.
-  if perms is not None:
-    # If perms doesn't set the file type, mark it as a regular file.
-    if perms & 0o770000 == 0:
-      perms |= 0o100000
-    zinfo.external_attr = perms << 16
+    # Use a fixed timestamp so the output is repeatable.
+    zinfo.date_time = (2009, 1, 1, 0, 0, 0)
 
-  # Use a fixed timestamp so the output is repeatable.
-  zinfo.date_time = (2009, 1, 1, 0, 0, 0)
-
-  zip_file.writestr(zinfo, data)
-  zipfile.ZIP64_LIMIT = saved_zip64_limit
+    zip_file.writestr(zinfo, data)
+  finally:
+    zipfile.ZIP64_LIMIT = saved_zip64_limit
 
 def ZipExclude(input_zip, output_zip, entries, force=False):
   """Deletes entries from a ZIP file.
@@ -3171,10 +3172,10 @@ def ZipClose(zip_file):
   # central directory.
   saved_zip64_limit = zipfile.ZIP64_LIMIT
   zipfile.ZIP64_LIMIT = (1 << 32) - 1
-
-  zip_file.close()
-
-  zipfile.ZIP64_LIMIT = saved_zip64_limit
+  try:
+    zip_file.close()
+  finally:
+    zipfile.ZIP64_LIMIT = saved_zip64_limit
 
 
 class DeviceSpecificParams(object):
