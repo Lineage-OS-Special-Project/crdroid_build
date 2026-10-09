@@ -2372,6 +2372,7 @@ def GetSparseImage(which, tmpdir, input_zip, allow_shared_blocks):
   # block.map may contain less blocks, because mke2fs may skip allocating blocks
   # if they contain all zeros. We can't reconstruct such a file from its block
   # list. Tag such entries accordingly. (Bug: 65213616)
+  zip_entries = set(input_zip.namelist())
   for entry in image.file_map:
     # Skip artificial names, such as "__ZERO", "__NONZERO-1".
     if not entry.startswith('/'):
@@ -2389,7 +2390,7 @@ def GetSparseImage(which, tmpdir, input_zip, allow_shared_blocks):
     else:
       arcname = arcname.replace(which, which.upper(), 1)
 
-    assert arcname in input_zip.namelist(), \
+    assert arcname in zip_entries, \
         "Failed to find the ZIP entry for {}".format(entry)
 
     info = input_zip.getinfo(arcname)
