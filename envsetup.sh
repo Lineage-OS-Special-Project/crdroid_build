@@ -496,7 +496,23 @@ function _lunch_meat()
     fixup_common_out_dir
 
     set_stuff_for_environment
-    [[ -n "${ANDROID_QUIET_BUILD:-}" ]] || printconfig
+    if [[ -z "${ANDROID_QUIET_BUILD:-}" ]]; then
+        # Capture the report so a failed configuration report remains visible
+        # without clearing the setup output that may explain the failure.
+        local lunch_config
+        local printconfig_status
+        if lunch_config=$(printconfig); then
+            printconfig_status=0
+        else
+            printconfig_status=$?
+        fi
+        if [ $printconfig_status -eq 0 ] && [ -t 1 ] && [[ -n "${TERM:-}" && "$TERM" != "dumb" ]] && command -v clear >/dev/null 2>&1; then
+            clear 2>/dev/null || true
+        fi
+        if [[ -n "$lunch_config" ]]; then
+            printf '%s\n' "$lunch_config"
+        fi
+    fi
 
     if [[ -z "${ANDROID_QUIET_BUILD}" && -z "${LINEAGE_BUILD}" ]]; then
         local spam_for_lunch=$(gettop)/build/make/tools/envsetup/spam_for_lunch
