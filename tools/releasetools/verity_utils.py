@@ -249,7 +249,8 @@ class VerifiedBootVersion2VerityImageBuilder(VerityImageBuilder):
     output, _ = proc.communicate()
     if proc.returncode != 0:
       raise BuildVerityImageError(
-          "Failed to calculate max image size:\n{}".format(output))
+          "Failed to run command {} (exit code {}): Failed to calculate max image size:\n{}".format(
+              cmd, proc.returncode, output))
     image_size = int(output)
     if image_size <= 0:
       raise BuildVerityImageError(
@@ -282,7 +283,9 @@ class VerifiedBootVersion2VerityImageBuilder(VerityImageBuilder):
     proc = common.Run(cmd)
     output, _ = proc.communicate()
     if proc.returncode != 0:
-      raise BuildVerityImageError("Failed to add AVB footer: {}".format(output))
+      raise BuildVerityImageError(
+          "Failed to run command {} (exit code {}): Failed to add AVB footer: {}".format(
+              cmd, proc.returncode, output))
 
 
 def CreateCustomImageBuilder(info_dict, partition_name, partition_size,

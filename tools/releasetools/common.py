@@ -236,7 +236,7 @@ def InitLogging():
       config['handlers']['logfile'] = {
           'class': 'logging.FileHandler',
           'formatter': 'standard',
-          'level': 'INFO',
+          'level': 'DEBUG',
           'mode': 'w',
           'filename': OPTIONS.logfile,
       }
@@ -296,9 +296,9 @@ def Run(args, verbose=None, **kwargs):
   if verbose:
     cwd = kwargs.get("cwd")
     if cwd:
-      logger.info("  Running: \"%s\" @ %s", " ".join(args), cwd)
+      logger.debug('  Running: "%s" @ %s', " ".join(args), cwd)
     else:
-      logger.info("  Running: \"%s\"", " ".join(args))
+      logger.debug('  Running: "%s"', " ".join(args))
   return subprocess.Popen(args, **kwargs)
 
 
@@ -326,7 +326,7 @@ def RunAndCheckOutput(args, verbose=None, **kwargs):
   if output is None:
     output = ""
   # Don't log any if caller explicitly says so.
-  if verbose:
+  if verbose and output:
     logger.info("%s", output.rstrip())
   if proc.returncode != 0:
     raise ExternalError(

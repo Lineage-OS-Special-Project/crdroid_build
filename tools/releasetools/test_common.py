@@ -15,6 +15,8 @@
 #
 
 import copy
+import logging
+from unittest import mock
 import os
 import subprocess
 import tempfile
@@ -54,6 +56,55 @@ def hash_file(filename):
       sha1_hash.update(data)
   return sha1_hash
 
+
+class RunLoggingTest(unittest.TestCase):
+
+  def test_command_narration_not_in_normal_info_output(self):
+    with mock.patch.object(common.logger, "info") as info:
+      self.assertEqual("", common.RunAndCheckOutput(["true"], verbose=False))
+
+    info.assert_not_called()
+
+  def test_verbose_command_narration_is_debug(self):
+    with self.assertLogs(common.logger, level="DEBUG") as logs:
+      self.assertEqual("", common.RunAndCheckOutput(["true"], verbose=True))
+
+    command_logs = [record for record in logs.records
+                    if "Running:" in record.getMessage()]
+    self.assertEqual(1, len(command_logs))
+    self.assertEqual("DEBUG", command_logs[0].levelname)
+
+  def test_logfile_captures_debug_command_narration(self):
+    logfile = tempfile.NamedTemporaryFile(delete=False)
+    logfile.close()
+    old_logfile = common.OPTIONS.logfile
+    old_verbose = common.OPTIONS.verbose
+    try:
+      common.OPTIONS.logfile = logfile.name
+      common.OPTIONS.verbose = True
+      common.InitLogging()
+      proc = common.Run(["true"])
+      proc.communicate()
+      logging.shutdown()
+      with open(logfile.name) as f:
+        contents = f.read()
+      self.assertIn("DEBUG", contents)
+      self.assertIn("Running:", contents)
+    finally:
+      common.OPTIONS.logfile = old_logfile
+      common.OPTIONS.verbose = old_verbose
+      os.unlink(logfile.name)
+      common.InitLogging()
+
+  def test_failed_command_retains_command_status_and_output(self):
+    with self.assertRaises(common.ExternalError) as cm:
+      common.RunAndCheckOutput(
+          ["sh", "-c", "echo failure-context; exit 7"], verbose=False)
+
+    message = str(cm.exception)
+    self.assertIn("sh", message)
+    self.assertIn("exit code 7", message)
+    self.assertIn("failure-context", message)
 
 class BuildInfoTest(test_utils.ReleaseToolsTestCase):
 
