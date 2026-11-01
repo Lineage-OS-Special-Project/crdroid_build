@@ -216,21 +216,18 @@ function _wrap_build()
     local color_failed=""
     local color_success=""
     local color_reset=""
-    if [[ -t 1 && -z "${NO_COLOR:-}" && -n "${TERM:-}" && "${TERM}" != dumb ]] \
-            && command -v tput >/dev/null 2>&1; then
-        local ncolors
-        ncolors=$(tput colors 2>/dev/null) || ncolors=""
-        if [[ "$ncolors" =~ ^[0-9]+$ ]] && (( ncolors >= 8 )); then
-            color_failed=$(tput setaf 1 2>/dev/null) || color_failed=""
-            color_success=$(tput setaf 2 2>/dev/null) || color_success=""
-            color_reset=$(tput sgr0 2>/dev/null) || color_reset=""
-            # Use color only when tput supplied the complete required sequences.
-            if [[ -z "$color_failed" || -z "$color_success" || -z "$color_reset" ]]; then
-                color_failed=""
-                color_success=""
-                color_reset=""
-            fi
-        fi
+    if [[ -t 1 && ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then
+        color_reset=$'\033[0m'
+        case "${COLORTERM:-}" in
+            truecolor|24bit)
+                color_failed=$'\033[38;2;201;87;87m'
+                color_success=$'\033[38;2;69;169;120m'
+                ;;
+            *)
+                color_failed=$'\033[31m'
+                color_success=$'\033[32m'
+                ;;
+        esac
     fi
 
     if (( ret == 0 )); then
