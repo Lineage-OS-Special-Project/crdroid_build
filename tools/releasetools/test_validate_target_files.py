@@ -20,6 +20,7 @@ import os
 import os.path
 import shutil
 import zipfile
+from unittest import mock
 
 import common
 import test_utils
@@ -117,6 +118,27 @@ class ValidateTargetFilesTest(test_utils.ReleaseToolsTestCase):
     self.assertRaises(
         AssertionError, ValidateVerifiedBootImages, input_tmp, info_dict,
         options)
+
+  def test_ValidateVerifiedBootImages_directRunFailureHasContext(self):
+    input_tmp = common.MakeTempDir()
+    os.mkdir(os.path.join(input_tmp, 'IMAGES'))
+    boot_image = os.path.join(input_tmp, 'IMAGES', 'boot.img')
+    with open(boot_image, 'wb'):
+      pass
+
+    proc = mock.Mock(returncode=9)
+    proc.communicate.return_value = (b'bad signature', None)
+    options = {'verity_key': 'testkey.x509.pem'}
+    with mock.patch.object(common, 'Run', return_value=proc):
+      with self.assertRaises(AssertionError) as cm:
+        ValidateVerifiedBootImages(
+            input_tmp, {'boot_signer': 'true'}, options)
+
+    message = str(cm.exception)
+    self.assertIn("['boot_signer', '-verify', '{}'".format(boot_image),
+                  message)
+    self.assertIn('exit code 9', message)
+    self.assertIn('Failed to verify boot.img with boot_signer', message)
 
   @test_utils.SkipIfExternalToolsUnavailable()
   def test_ValidateVerifiedBootImages_bootImage_corrupted(self):

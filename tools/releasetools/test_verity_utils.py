@@ -20,6 +20,7 @@ import copy
 import math
 import os.path
 import random
+from unittest import mock
 
 import common
 import sparse_img
@@ -27,7 +28,7 @@ from rangelib import RangeSet
 from test_utils import (
     get_testdata_dir, ReleaseToolsTestCase, SkipIfExternalToolsUnavailable)
 from verity_utils import (
-    CalculateVbmetaDigest, CreateVerityImageBuilder)
+    BuildVerityImageError, CalculateVbmetaDigest, CreateVerityImageBuilder)
 
 BLOCK_SIZE = common.BLOCK_SIZE
 
@@ -53,6 +54,24 @@ class VerifiedBootVersion2VerityImageBuilderTest(ReleaseToolsTestCase):
     del prop_dict['avb_hashtree_enable']
     verity_image_builder = CreateVerityImageBuilder(prop_dict)
     self.assertIsNone(verity_image_builder)
+
+  def test_Build_directRunFailureHasContext(self):
+    builder = CreateVerityImageBuilder(copy.deepcopy(self.DEFAULT_PROP_DICT))
+    builder.partition_size = 4096 * 1024
+    proc = mock.Mock(returncode=9)
+    proc.communicate.return_value = (b'avb footer failure', None)
+
+    with mock.patch.object(common, 'Run', return_value=proc):
+      with self.assertRaises(BuildVerityImageError) as cm:
+        builder.Build('system.img')
+
+    message = str(cm.exception)
+    self.assertIn('avbtool', message)
+    self.assertIn('add_hashtree_footer', message)
+    self.assertIn('system.img', message)
+    self.assertIn('exit code 9', message)
+    self.assertIn('Failed to add AVB footer', message)
+    self.assertIn('avb footer failure', message)
 
   @SkipIfExternalToolsUnavailable()
   def test_Build(self):

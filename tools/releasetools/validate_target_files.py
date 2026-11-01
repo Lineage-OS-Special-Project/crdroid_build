@@ -351,7 +351,8 @@ def ValidateVerifiedBootImages(input_tmp, info_dict, options):
       proc = common.Run(cmd)
       stdoutdata, _ = proc.communicate()
       assert proc.returncode == 0, \
-          'Failed to verify {} with boot_signer:\n{}'.format(image, stdoutdata)
+          'Failed to run command {} (exit code {}): Failed to verify {} with boot_signer:\n{}'.format(
+              cmd, proc.returncode, image, stdoutdata)
       logging.info(
           'Verified %s with boot_signer (key: %s):\n%s', image, verity_key,
           stdoutdata.rstrip())
@@ -401,8 +402,8 @@ def ValidateVerifiedBootImages(input_tmp, info_dict, options):
       proc = common.Run(cmd)
       stdoutdata, _ = proc.communicate()
       assert proc.returncode == 0, \
-          'Failed to verify {} with verity_verifier (key: {}):\n{}'.format(
-              image, verity_key_mincrypt, stdoutdata)
+          'Failed to run command {} (exit code {}): Failed to verify {} with verity_verifier (key: {}):\n{}'.format(
+              cmd, proc.returncode, image, verity_key_mincrypt, stdoutdata)
       logging.info(
           'Verified %s with verity_verifier (key: %s):\n%s', image,
           verity_key_mincrypt, stdoutdata.rstrip())
@@ -458,8 +459,8 @@ def ValidateVerifiedBootImages(input_tmp, info_dict, options):
     proc = common.Run(cmd)
     stdoutdata, _ = proc.communicate()
     assert proc.returncode == 0, \
-        'Failed to verify {} with avbtool (key: {}):\n{}'.format(
-            image, key, stdoutdata)
+        'Failed to run command {} (exit code {}): Failed to verify {} with avbtool (key: {}):\n{}'.format(
+            cmd, proc.returncode, image, key, stdoutdata)
 
     logging.info(
         'Verified %s with avbtool (key: %s):\n%s', image, key,
@@ -475,8 +476,8 @@ def ValidateVerifiedBootImages(input_tmp, info_dict, options):
       proc = common.Run(cmd)
       stdoutdata, _ = proc.communicate()
       assert proc.returncode == 0, \
-          'Failed to verify {} with avbtool (key: {}):\n{}'.format(
-              image, key, stdoutdata)
+          'Failed to run command {} (exit code {}): Failed to verify {} with avbtool (key: {}):\n{}'.format(
+              cmd, proc.returncode, image, key, stdoutdata)
       logging.info(
           'Verified %s with avbtool (key: %s):\n%s', image, key,
           stdoutdata.rstrip())
