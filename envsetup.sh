@@ -1083,7 +1083,8 @@ function get_make_command()
 
 function make()
 {
-    _wrap_build $(get_make_command "$@") "$@"
+    local -a build_targets=("$@")
+    _wrap_build --targets "${build_targets[@]}" -- $(get_make_command "$@") "$@"
 }
 
 # Zsh needs bashcompinit called to support bash-style completion.
