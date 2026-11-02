@@ -194,9 +194,33 @@ function getoutdir
     echo "${out_dir}"
 }
 
+# Returns success when every explicit build target is a clean-only target.
+function _is_clean_only_invocation()
+{
+    (( $# > 0 )) || return 1
+
+    local target
+    for target in "$@"; do
+        case "$target" in
+            installclean|install-clean) ;;
+            *) return 1 ;;
+        esac
+    done
+}
+
 # Pretty print the build status and duration
 function _wrap_build()
 {
+    local -a invocation_targets=()
+    if [[ "${1:-}" == --targets ]]; then
+      shift
+      while [[ $# -gt 0 && "$1" != -- ]]; do
+        invocation_targets+=("$1")
+        shift
+      done
+      [[ $# -gt 0 ]] && shift
+    fi
+
     if [[ "${ANDROID_QUIET_BUILD:-}" == true ]]; then
       "$@"
       return $?
@@ -215,24 +239,33 @@ function _wrap_build()
 
     local color_failed=""
     local color_success=""
+    local success_badge=false
     local color_reset=""
     if [[ -t 1 && ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then
         color_reset=$'\033[0m'
         case "${COLORTERM:-}" in
             truecolor|24bit)
                 color_failed=$'\033[38;2;201;87;87m'
-                color_success=$'\033[38;2;69;169;120m'
+                color_success=$'\033[38;2;255;255;255m\033[48;2;16;200;200m'
+                success_badge=true
                 ;;
             *)
                 color_failed=$'\033[31m'
-                color_success=$'\033[32m'
+                color_success=$'\033[97;46m'
+                success_badge=true
                 ;;
         esac
     fi
 
     if (( ret == 0 )); then
-        printf '\n%sBuild completed successfully  (%s)%s\n\n' \
-            "$color_success" "$elapsed" "$color_reset"
+        if _is_clean_only_invocation "${invocation_targets[@]}"; then
+            :
+        elif [[ "$success_badge" == true ]]; then
+            printf '\n%s BUILD COMPLETED SUCCESSFULLY  %s %s\n\n' \
+                "$color_success" "$elapsed" "$color_reset"
+        else
+            printf '\nBuild completed successfully  (%s)\n\n' "$elapsed"
+        fi
     else
         printf '\n%sBuild failed  (%s)%s\n\n' \
             "$color_failed" "$elapsed" "$color_reset"
