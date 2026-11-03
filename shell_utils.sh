@@ -222,12 +222,21 @@ function _wrap_build()
     fi
 
     if [[ "${ANDROID_QUIET_BUILD:-}" == true ]]; then
-      "$@"
-      return $?
+      if _is_clean_only_invocation "${invocation_targets[@]}"; then
+        LOSP_CLEAN_ONLY_INVOCATION=true "$@"
+      else
+        "$@"
+      fi
+      local ret=$?
+      return "$ret"
     fi
 
     local start_time=$(date +"%s")
-    "$@"
+    if _is_clean_only_invocation "${invocation_targets[@]}"; then
+      LOSP_CLEAN_ONLY_INVOCATION=true "$@"
+    else
+      "$@"
+    fi
     local ret=$?
     local end_time=$(date +"%s")
     local tdiff=$((end_time - start_time))
