@@ -248,38 +248,69 @@ function _wrap_build()
 
     local color_failed=""
     local color_success=""
-    local success_badge=false
     local color_reset=""
     if [[ -t 1 && ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then
         color_reset=$'\033[0m'
         case "${COLORTERM:-}" in
             truecolor|24bit)
                 color_failed=$'\033[38;2;201;87;87m'
-                color_success=$'\033[38;2;255;255;255m\033[48;2;16;200;200m'
-                success_badge=true
+                color_success=$'\033[38;2;16;200;200m'
                 ;;
             *)
                 color_failed=$'\033[31m'
-                color_success=$'\033[97;46m'
-                success_badge=true
+                color_success=$'\033[36m'
                 ;;
         esac
     fi
 
+    local -a build_rows=(
+        '████   █   █  █████  █      ████ '
+        '█   █  █   █    █    █      █   █'
+        '█   █  █   █    █    █      █   █'
+        '████   █   █    █    █      █   █'
+        '█   █  █   █    █    █      █   █'
+        '████    ███   █████  █████  ████ '
+    )
+    local -a succeeded_rows=(
+        ' ████  █   █   ████   ████  █████  █████  ████   █████  ████ '
+        '█      █   █  █      █      █      █      █   █  █      █   █'
+        '█      █   █  █      █      █      █      █   █  █      █   █'
+        ' ███   █   █  █      █      ████   ████   █   █  ████   █   █'
+        '    █  █   █  █      █      █      █      █   █  █      █   █'
+        '████    ███    ████   ████  █████  █████  ████   █████  ████ '
+    )
+    local -a failed_rows=(
+        '█████   ███   █████  █      █████  ████ '
+        '█      █   █    █    █      █      █   █'
+        '█      █   █    █    █      █      █   █'
+        '████   █████    █    █      ████   █   █'
+        '█      █   █    █    █      █      █   █'
+        '█      █   █  █████  █████  █████  ████ '
+    )
+    local row
     if (( ret == 0 )); then
-        if _is_clean_only_invocation "${invocation_targets[@]}"; then
-            :
-        elif [[ "$success_badge" == true ]]; then
-            printf '\n%s BUILD COMPLETED SUCCESSFULLY  %s %s\n\n' \
-                "$color_success" "$elapsed" "$color_reset"
-        else
-            printf '\nBuild completed successfully  (%s)\n\n' "$elapsed"
+        if ! _is_clean_only_invocation "${invocation_targets[@]}"; then
+            printf '\n'
+            for row in "${build_rows[@]}"; do
+                printf '%s%*s%s%s\n' "$color_success" "$(((80 - ${#row}) / 2))" '' "$row" "$color_reset"
+            done
+            printf '\n'
+            for row in "${succeeded_rows[@]}"; do
+                printf '%s%*s%s%s\n' "$color_success" "$(((80 - ${#row}) / 2))" '' "$row" "$color_reset"
+            done
+            printf '\n%sBUILD SUCCEEDED%s  (%s)\n\n' "$color_success" "$color_reset" "$elapsed"
         fi
     else
-        printf '\n%sBuild failed  (%s)%s\n\n' \
-            "$color_failed" "$elapsed" "$color_reset"
+        printf '\n'
+        for row in "${build_rows[@]}"; do
+            printf '%s%*s%s%s\n' "$color_failed" "$(((80 - ${#row}) / 2))" '' "$row" "$color_reset"
+        done
+        printf '\n'
+        for row in "${failed_rows[@]}"; do
+            printf '%s%*s%s%s\n' "$color_failed" "$(((80 - ${#row}) / 2))" '' "$row" "$color_reset"
+        done
+        printf '\n%sBUILD FAILED%s  (%s)\n\n' "$color_failed" "$color_reset" "$elapsed"
     fi
-
     # Because SOONG_PARTIAL_COMPILE and SOONG_USE_PARTIAL_COMPILE are set via
     # ANDROID_BUILD_ENVIRONMENT, we only have access to values explicitly set by the user.
     if [[ ${TARGET_BUILD_VARIANT} = eng ]] && [[ $SOONG_USE_PARTIAL_COMPILE == false ]]; then
