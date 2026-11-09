@@ -1279,21 +1279,23 @@ endef
 ## Use echo-(warning|error) in a build rule
 ## Use pretty-(warning|error) instead of $(warning)/$(error)
 ###########################################################
-ESC_BOLD := \033[1m
-ESC_WARNING := \033[35m
-ESC_ERROR := \033[31m
-ESC_RESET := \033[0m
+LOSP_COLOR_ENABLED := $(shell if [ -t 2 ] && [ -z "$${NO_COLOR+x}" ] && [ "$${TERM-}" != dumb ]; then echo yes; fi)
+ESC_BOLD := $(if $(LOSP_COLOR_ENABLED),\033[1m)
+ESC_INFO := $(if $(LOSP_COLOR_ENABLED),$(if $(filter truecolor 24bit,$(COLORTERM)),\033[38;2;129;143;232m,\033[34m))
+ESC_WARNING := $(if $(LOSP_COLOR_ENABLED),$(if $(filter truecolor 24bit,$(COLORTERM)),\033[38;2;201;150;50m,\033[33m))
+ESC_ERROR := $(if $(LOSP_COLOR_ENABLED),$(if $(filter truecolor 24bit,$(COLORTERM)),\033[38;2;201;87;87m,\033[31m))
+ESC_RESET := $(if $(LOSP_COLOR_ENABLED),\033[0m)
 
 # $(1): path (and optionally line) information
 # $(2): message to print
 define echo-warning
-echo -e "$(ESC_BOLD)$(1): $(ESC_WARNING)warning:$(ESC_RESET)$(ESC_BOLD)" '$(subst ','\'',$(2))'  "$(ESC_RESET)" >&2
+echo -e "$(ESC_BOLD)$(1): $(ESC_WARNING)warning:$(ESC_RESET)$(ESC_BOLD)" '$(subst ','\'',$(2))' "$(ESC_RESET)" >&2
 endef
 
 # $(1): path (and optionally line) information
 # $(2): message to print
 define echo-error
-echo -e "$(ESC_BOLD)$(1): $(ESC_ERROR)error:$(ESC_RESET)$(ESC_BOLD)" '$(subst ','\'',$(2))'  "$(ESC_RESET)" >&2
+echo -e "$(ESC_BOLD)$(1): $(ESC_ERROR)error:$(ESC_RESET)$(ESC_BOLD)" '$(subst ','\'',$(2))' "$(ESC_RESET)" >&2
 endef
 
 ###########################################################

@@ -633,14 +633,27 @@ function lunch()
 
 function leftovers()
 {
-    if [ -t 1 ] && [ $(tput colors) -ge 8 ]; then
-        local style_reset="$(tput sgr0)"
-        local style_red="$(tput setaf 1)"
-        local style_green="$(tput setaf 2)"
-        local style_bold="$(tput bold)"
+    local style_reset=''
+    local style_red=''
+    local style_info=''
+    local style_bold=''
+    if [[ -t 1 && ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then
+        local terminal_colors=0
+        terminal_colors=$(tput colors 2>/dev/null) || terminal_colors=0
+        if [[ "${COLORTERM:-}" == truecolor || "${COLORTERM:-}" == 24bit || $terminal_colors -ge 8 ]]; then
+            style_reset=$'\033[0m'
+            style_bold=$'\033[1m'
+            if [[ "${COLORTERM:-}" == truecolor || "${COLORTERM:-}" == 24bit ]]; then
+                style_red=$'\033[38;2;201;87;87m'
+                style_info=$'\033[38;2;129;143;232m'
+            else
+                style_red=$'\033[31m'
+                style_info=$'\033[34m'
+            fi
+        fi
     fi
     local FAIL="${style_bold}${style_red}ERROR${style_reset}"
-    local INFO="${style_bold}${style_green}INFO${style_reset}"
+    local INFO="${style_info}${style_bold}INFO${style_reset}"
 
     if [[ $# -eq 1 && ($1 = "--help" || $1 == "-h" || $1 == "help") ]]; then
         (

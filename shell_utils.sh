@@ -248,8 +248,12 @@ function _wrap_build()
 
     local color_failed=""
     local color_success=""
+    local color_bold=""
+    local color_normal=""
     local color_reset=""
     if [[ -t 1 && ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then
+        color_bold=$'\033[1m'
+        color_normal=$'\033[22m'
         color_reset=$'\033[0m'
         case "${COLORTERM:-}" in
             truecolor|24bit)
@@ -298,7 +302,7 @@ function _wrap_build()
             for row in "${succeeded_rows[@]}"; do
                 printf '%s%*s%s%s\n' "$color_success" "$(((80 - ${#row}) / 2))" '' "$row" "$color_reset"
             done
-            printf '\n%sBUILD SUCCEEDED%s  (%s)\n\n' "$color_success" "$color_reset" "$elapsed"
+            printf '\n%s%sBUILD SUCCEEDED%s%s  (%s)\n\n' "$color_success" "$color_bold" "$color_normal" "$color_reset" "$elapsed"
         fi
     else
         printf '\n'
@@ -309,7 +313,7 @@ function _wrap_build()
         for row in "${failed_rows[@]}"; do
             printf '%s%*s%s%s\n' "$color_failed" "$(((80 - ${#row}) / 2))" '' "$row" "$color_reset"
         done
-        printf '\n%sBUILD FAILED%s  (%s)\n\n' "$color_failed" "$color_reset" "$elapsed"
+        printf '\n%s%sBUILD FAILED%s%s  (%s)\n\n' "$color_failed" "$color_bold" "$color_normal" "$color_reset" "$elapsed"
     fi
     # Because SOONG_PARTIAL_COMPILE and SOONG_USE_PARTIAL_COMPILE are set via
     # ANDROID_BUILD_ENVIRONMENT, we only have access to values explicitly set by the user.
